@@ -1,0 +1,576 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!--
+  ============================================================
+  yps_schema.xsd
+  Youth Policy Benefits Schema — XML Schema Definition
+  Author  : DoAh Kim (김도아), 2021310281
+  Course  : Principles of Metadata
+  Version : Draft 4
+  Date    : 2026-06-10
+  ============================================================
+-->
+
+<xs:schema
+  xmlns:xs="http://www.w3.org/2001/XMLSchema"
+  xmlns="http://example.org/yps/"
+  targetNamespace="http://example.org/yps/"
+  elementFormDefault="qualified">
+
+  <!--
+    ============================================================
+    SECTION 1: SIMPLE TYPES — CONTROLLED VOCABULARIES
+    These simpleTypes correspond directly to the controlled vocabulary
+    appendices in Draft 3. Using xs:enumeration enforces exact-match
+    validation, which is essential for filtering and search across records.
+    ============================================================
+  -->
+
+  <!-- A1: Support Type vocabulary
+       DESIGN INTENT: Covers all benefit categories identified in the
+       10 exemplar objects (Draft 2). "Mixed" is included to handle
+       policies that span multiple support types in a single program.
+       MODIFICATION FROM DRAFT 3: no value changes; names were already
+       camelCase and valid for xs:enumeration. -->
+  <xs:simpleType name="SupportTypeType">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="Housing"/>
+      <xs:enumeration value="CashAllowance"/>
+      <xs:enumeration value="Scholarship"/>
+      <xs:enumeration value="Employment"/>
+      <xs:enumeration value="Training"/>
+      <xs:enumeration value="Entrepreneurship"/>
+      <xs:enumeration value="SavingsAssetBuilding"/>
+      <xs:enumeration value="Transportation"/>
+      <xs:enumeration value="HealthCounseling"/>
+      <xs:enumeration value="CultureLeisure"/>
+      <xs:enumeration value="LoanInterestSupport"/>
+      <xs:enumeration value="Mixed"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <!-- A2: Target Group vocabulary
+       DESIGN INTENT: Covers the distinct youth sub-populations that
+       appear across Korean government benefit programs. Repeatable in
+       the record because a single policy may serve multiple groups. -->
+  <xs:simpleType name="TargetGroupType">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="GeneralYouth"/>
+      <xs:enumeration value="CollegeStudents"/>
+      <xs:enumeration value="JobSeekers"/>
+      <xs:enumeration value="YoungWorkers"/>
+      <xs:enumeration value="YoungEntrepreneurs"/>
+      <xs:enumeration value="OnePersonHouseholds"/>
+      <xs:enumeration value="LowIncomeYouth"/>
+      <xs:enumeration value="RegionalResidents"/>
+      <xs:enumeration value="NewlyEmployedYouth"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <!-- A3: Application Method vocabulary
+       DESIGN INTENT: Captures how an applicant actually submits their
+       application. Knowing this upfront helps users who can only apply
+       online or only in person.
+       MODIFICATION FROM DRAFT 3: "Offline (InPerson)" renamed to
+       "OfflineInPerson" — parentheses and spaces in enumeration values
+       cause inconsistency with the camelCase style of other values and
+       increase risk of input error. -->
+  <xs:simpleType name="ApplicationMethodType">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="Online"/>
+      <xs:enumeration value="OfflineInPerson"/>
+      <xs:enumeration value="Mail"/>
+      <xs:enumeration value="Mixed"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <!-- A4: Employment or Student Status vocabulary
+       DESIGN INTENT: Some policies are restricted to specific work or
+       study statuses (e.g., only job seekers, only enrolled students).
+       "Unspecified" is included for policies with no status requirement,
+       to avoid leaving the field empty while still making the absence
+       of a restriction explicit. -->
+  <xs:simpleType name="EmploymentOrStudentStatusType">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="Student"/>
+      <xs:enumeration value="JobSeeker"/>
+      <xs:enumeration value="Employed"/>
+      <xs:enumeration value="SelfEmployed"/>
+      <xs:enumeration value="Entrepreneur"/>
+      <xs:enumeration value="Unspecified"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <!-- A5: Household Condition vocabulary
+       DESIGN INTENT: Korean youth benefit policies frequently use
+       household composition as an eligibility criterion (e.g.,
+       one-person household requirements for rent support).
+       "Unspecified" serves the same purpose as in A4. -->
+  <xs:simpleType name="HouseholdConditionType">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="OnePersonHousehold"/>
+      <xs:enumeration value="MultiPersonHousehold"/>
+      <xs:enumeration value="DependentHousehold"/>
+      <xs:enumeration value="LowIncomeHousehold"/>
+      <xs:enumeration value="Unspecified"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <!-- Geographic Eligibility vocabulary (added in Draft 4)
+       DESIGN INTENT: Draft 3 left this as a free string, which would
+       produce inconsistent values ("Seoul", "Seoul residents", "서울시"
+       for the same meaning). The schema's purpose — helping users filter
+       policies by location — requires at least a top-level distinction
+       between nationwide and region-specific programs.
+       Two values are sufficient for this schema's scope:
+         National      = available to all eligible youth nationwide
+         RegionSpecific = restricted to residents of a particular region
+       A separate prose field (geographicEligibilityNote, if added later)
+       could capture the specific region name for RegionSpecific records. -->
+  <xs:simpleType name="GeographicEligibilityType">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="National"/>
+      <xs:enumeration value="RegionSpecific"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+
+  <!--
+    ============================================================
+    SECTION 2: ROOT ELEMENT
+    policyRecord is the top-level wrapper for a single youth policy
+    benefit record. The name follows metadata convention (Dublin Core,
+    MARC) where "record" denotes one descriptive unit.
+    ============================================================
+  -->
+  <xs:element name="policyRecord">
+    <xs:annotation>
+      <xs:documentation>
+        The root element. Each policyRecord instance describes one
+        distinct youth policy benefit program. Records are intended to
+        be aggregated into a registry or catalog that users can search
+        and filter by eligibility criteria.
+      </xs:documentation>
+    </xs:annotation>
+
+    <xs:complexType>
+      <!--
+        DESIGN INTENT: xs:sequence is used (not xs:all or xs:choice)
+        because the order of elements in a descriptive metadata record
+        should be predictable and consistent across all records.
+        The sequence mirrors the logical flow: identity → eligibility
+        → benefit content → application → provenance.
+      -->
+      <xs:sequence>
+
+        <!-- ── CORE ELEMENTS ─────────────────────────────────────── -->
+
+        <!-- 1. policyTitle
+             DESIGN INTENT: Primary human-readable identifier for the
+             record. mandatory and non-repeatable (1..1) because every
+             policy has exactly one official name. xs:string is used
+             rather than a restricted type because policy names are
+             free-form official text. -->
+        <xs:element name="policyTitle" type="xs:string" minOccurs="1" maxOccurs="1">
+          <xs:annotation>
+            <xs:documentation>
+              The official or commonly used name that identifies a youth
+              policy benefit record. Functions as the primary
+              human-readable title of the policy.
+              Example: "Youth Monthly Rent Support Program"
+            </xs:documentation>
+          </xs:annotation>
+        </xs:element>
+
+        <!-- 2. policySummary
+             DESIGN INTENT: A short, user-facing description of the
+             policy's purpose and benefit. mandatory and non-repeatable.
+             Kept as xs:string because summaries are free narrative text
+             and no useful restriction can be applied. -->
+        <xs:element name="policySummary" type="xs:string" minOccurs="1" maxOccurs="1">
+          <xs:annotation>
+            <xs:documentation>
+              A concise narrative summary explaining the purpose of the
+              policy and the kind of benefit or service it provides.
+              Should be short and user-facing.
+              Example: "A housing support program for young adults who
+              live independently and pay monthly rent."
+            </xs:documentation>
+          </xs:annotation>
+        </xs:element>
+
+        <!-- 3. supportType
+             DESIGN INTENT: The most important search/filter field.
+             Repeatable (1..unbounded) because a single policy may
+             combine multiple benefit types (e.g., Housing + CashAllowance).
+             Uses SupportTypeType enumeration to enforce consistent
+             categorization across records. -->
+        <xs:element name="supportType" type="SupportTypeType" minOccurs="1" maxOccurs="unbounded">
+          <xs:annotation>
+            <xs:documentation>
+              The broad category of support provided by the policy.
+              Controlled vocabulary: see SupportTypeType.
+              Repeatable because one policy may combine more than one
+              support type.
+              Example: Housing; CashAllowance
+            </xs:documentation>
+          </xs:annotation>
+        </xs:element>
+
+        <!-- 4. targetGroup
+             DESIGN INTENT: Identifies the intended beneficiary group.
+             Repeatable (1..unbounded) because a policy may serve
+             multiple youth sub-populations simultaneously. Uses
+             TargetGroupType enumeration to ensure consistent grouping. -->
+        <xs:element name="targetGroup" type="TargetGroupType" minOccurs="1" maxOccurs="unbounded">
+          <xs:annotation>
+            <xs:documentation>
+              The intended beneficiary group the policy is designed to
+              support. Controlled vocabulary: see TargetGroupType.
+              Repeatable because a policy may apply to multiple groups.
+              Example: JobSeekers; CollegeStudents
+            </xs:documentation>
+          </xs:annotation>
+        </xs:element>
+
+        <!-- 5. ageRequirement
+             DESIGN INTENT: Age range eligibility is mandatory for all
+             youth policy records since "youth" itself is age-defined.
+             xs:string is used rather than xs:integer because the field
+             needs to express ranges ("19-34") and special values
+             ("NoAgeLimit"). A pattern restriction was considered but
+             rejected to keep the schema simple and flexible for edge
+             cases. Recommended format: "NN-NN" or "NoAgeLimit". -->
+        <xs:element name="ageRequirement" type="xs:string" minOccurs="1" maxOccurs="1">
+          <xs:annotation>
+            <xs:documentation>
+              The age-based eligibility rule. Mandatory for all records.
+              Recommended format: numeric range (e.g., "19-34") or
+              "NoAgeLimit". Non-repeatable because a policy has a single
+              age eligibility rule.
+              Example: "19-34"
+            </xs:documentation>
+          </xs:annotation>
+        </xs:element>
+
+        <!-- 6. geographicEligibility
+             DESIGN INTENT: Location-based filtering is a key user need.
+             Repeatable (1..unbounded) to cover policies with multiple
+             eligible regions.
+             MODIFICATION FROM DRAFT 3: Changed from xs:string to a
+             2-value enumeration (National / RegionSpecific) to prevent
+             inconsistent free-text entries.
+             MODIFICATION (2026-06-11, instructor feedback): A sibling
+             element eligibleRegionName is added to store the actual
+             region name as free text. geographicEligibility remains the
+             controlled filtering value; eligibleRegionName captures the
+             exact region name as written in the source policy document.
+             Instructor rationale: region names in Korean government
+             documents are not standardized ("서울", "서울시", "서울특별시"),
+             so enforcing an enum would reduce flexibility without benefit. -->
+        <xs:element name="geographicEligibility" type="GeographicEligibilityType" minOccurs="1" maxOccurs="unbounded">
+          <xs:annotation>
+            <xs:documentation>
+              The residence or location eligibility condition.
+              Controlled vocabulary: National or RegionSpecific.
+              Use "National" for programs open to all eligible youth
+              regardless of residence; "RegionSpecific" for programs
+              limited to residents of a particular area.
+              Pair with eligibleRegionName for the actual region name.
+              Example: National
+            </xs:documentation>
+          </xs:annotation>
+        </xs:element>
+
+        <!-- 6b. eligibleRegionName
+              DESIGN INTENT: Added per instructor feedback (2026-06-11).
+              Stores the actual region name as it appears in the source
+              policy document (e.g., "서울특별시", "부산광역시", "전국").
+              xs:string is intentionally used — region name notation is
+              not standardized across Korean government agencies, so
+              enforcing an enum would be overly rigid. Optional (0..1)
+              because National-scope policies may simply use "전국".
+              Repeatable if a policy covers multiple named regions. -->
+        <xs:element name="eligibleRegionName" type="xs:string" minOccurs="0" maxOccurs="unbounded">
+          <xs:annotation>
+            <xs:documentation>
+              The actual region name as written in the source policy
+              document. Free text. Use alongside geographicEligibility:
+              geographicEligibility provides the controlled filter value;
+              eligibleRegionName records the human-readable region label.
+              Optional and repeatable for multi-region policies.
+              Example: 서울특별시 / 전국 / 경기도
+            </xs:documentation>
+          </xs:annotation>
+        </xs:element>
+
+        <!-- 7. supportDetail
+             DESIGN INTENT: The specific content of the benefit
+             (amount, duration, service scope). xs:string because benefit
+             details are highly variable and free-form. mandatory and
+             non-repeatable — each policy has one benefit description. -->
+        <xs:element name="supportDetail" type="xs:string" minOccurs="1" maxOccurs="1">
+          <xs:annotation>
+            <xs:documentation>
+              The specific form, amount, duration, or service content of
+              the benefit. Free text. May later be split into structured
+              sub-elements (supportAmount, supportDuration, etc.).
+              Example: "Monthly rent subsidy up to KRW 200,000 for up
+              to 12 months."
+            </xs:documentation>
+          </xs:annotation>
+        </xs:element>
+
+        <!-- 8. applicationPeriod
+             DESIGN INTENT: Draft 3 used a single xs:string field, but
+             mixing ISO dates ("2026-03-01 to 2026-11-30") and keywords
+             ("Rolling") in one untyped field prevents date validation.
+             Split into three optional sub-elements so each type of
+             information is independently typed and validated:
+               startDate / endDate   → xs:date (ISO 8601 format enforced)
+               applicationCycle      → xs:string (for "Rolling", "AnnualCycle", etc.)
+             All three sub-elements are optional (minOccurs="0") because
+             a "Rolling" policy has no fixed start/end dates, and a
+             policy with explicit dates may not have a named cycle.
+             The parent element itself is mandatory (1..1). -->
+        <xs:element name="applicationPeriod" minOccurs="1" maxOccurs="1">
+          <xs:annotation>
+            <xs:documentation>
+              The time range or cycle during which users may apply.
+              Contains up to three optional sub-elements: startDate,
+              endDate (both xs:date), and applicationCycle (xs:string).
+              At least one sub-element should be present.
+              Example: startDate=2026-03-01, endDate=2026-11-30
+              Example: applicationCycle=Rolling
+            </xs:documentation>
+          </xs:annotation>
+          <xs:complexType>
+            <!--
+              xs:sequence used here so that if multiple sub-elements are
+              present they appear in a predictable order in the XML
+              instance (startDate before endDate before applicationCycle).
+            -->
+            <xs:sequence>
+
+              <!-- 8a. startDate
+                   DESIGN INTENT: xs:date enforces ISO 8601 (YYYY-MM-DD)
+                   format, preventing ambiguous date strings. Optional
+                   because rolling or annual-cycle policies may have no
+                   fixed start date. -->
+              <xs:element name="startDate" type="xs:date" minOccurs="0" maxOccurs="1">
+                <xs:annotation>
+                  <xs:documentation>
+                    The opening date of the application window.
+                    Format: YYYY-MM-DD (ISO 8601). Optional.
+                    Example: 2026-03-01
+                  </xs:documentation>
+                </xs:annotation>
+              </xs:element>
+
+              <!-- 8b. endDate
+                   DESIGN INTENT: Same rationale as startDate. Optional
+                   because open-ended or rolling programs have no
+                   fixed deadline. -->
+              <xs:element name="endDate" type="xs:date" minOccurs="0" maxOccurs="1">
+                <xs:annotation>
+                  <xs:documentation>
+                    The closing date of the application window.
+                    Format: YYYY-MM-DD (ISO 8601). Optional.
+                    Example: 2026-11-30
+                  </xs:documentation>
+                </xs:annotation>
+              </xs:element>
+
+              <!-- 8c. applicationCycle
+                   DESIGN INTENT: Captures recurring or open-ended
+                   patterns that cannot be expressed as a date pair.
+                   xs:string is intentionally kept flexible here because
+                   cycle terminology varies across programs. Common
+                   values: Rolling, AnnualCycle, Quarterly. -->
+              <xs:element name="applicationCycle" type="xs:string" minOccurs="0" maxOccurs="1">
+                <xs:annotation>
+                  <xs:documentation>
+                    A keyword describing the application scheduling
+                    pattern. Use when the program does not have a fixed
+                    start/end window. Common values: Rolling,
+                    AnnualCycle, Quarterly. Optional.
+                    Example: Rolling
+                  </xs:documentation>
+                </xs:annotation>
+              </xs:element>
+
+            </xs:sequence>
+          </xs:complexType>
+        </xs:element>
+
+        <!-- 9. applicationMethod
+             DESIGN INTENT: Knowing how to apply is essential user
+             information. Repeatable (1..unbounded) because many programs
+             allow both online and in-person submission.
+             Uses ApplicationMethodType enumeration.
+             MODIFICATION FROM DRAFT 3: "Offline (InPerson)" normalized
+             to "OfflineInPerson" for consistency with camelCase style
+             and to avoid parsing confusion. -->
+        <xs:element name="applicationMethod" type="ApplicationMethodType" minOccurs="1" maxOccurs="unbounded">
+          <xs:annotation>
+            <xs:documentation>
+              The mode(s) by which an applicant can submit an application.
+              Controlled vocabulary: see ApplicationMethodType.
+              Repeatable because some policies allow multiple channels.
+              Example: Online; OfflineInPerson
+            </xs:documentation>
+          </xs:annotation>
+        </xs:element>
+
+        <!-- 10. administeringAgency
+              DESIGN INTENT: Identifies who delivers the benefit.
+              Repeatable (1..unbounded) because some programs involve
+              both a national ministry and local governments.
+              Agency names are free text (proper nouns without a stable
+              controlled vocabulary), but a 'level' attribute is added
+              to distinguish national ministries from local authorities.
+              This uses xs:complexType with xs:simpleContent + xs:extension
+              to allow both text content (the agency name) and an attribute
+              (the governance level) on the same element.
+              MODIFICATION (2026-06-10): Changed from simple xs:string to
+              xs:complexType with xs:simpleContent to add the optional
+              'level' attribute. This pattern demonstrates xs:simpleContent
+              and satisfies the Draft 4 checklist item for elements that
+              need both text content and attributes. -->
+        <xs:element name="administeringAgency" minOccurs="1" maxOccurs="unbounded">
+          <xs:annotation>
+            <xs:documentation>
+              The government body, local authority, or institution
+              responsible for managing or delivering the policy benefit.
+              Repeatable for co-administered programs. The agency name
+              is free text. The optional 'level' attribute ("National"
+              or "Local") indicates the governance tier of the agency.
+              Example: &lt;administeringAgency level="National"&gt;Ministry of Land&lt;/administeringAgency&gt;
+              Example: &lt;administeringAgency level="Local"&gt;Seoul Metropolitan Government&lt;/administeringAgency&gt;
+            </xs:documentation>
+          </xs:annotation>
+          <xs:complexType>
+            <!--
+              xs:simpleContent is required here because the element has
+              text content (agency name as xs:string) AND an attribute.
+              xs:extension base="xs:string" preserves the text content
+              while xs:attribute adds the governance-level qualifier.
+              'level' is optional (use="optional") because some records
+              may list an agency whose governance tier is not immediately
+              determinable.
+            -->
+            <xs:simpleContent>
+              <xs:extension base="xs:string">
+                <xs:attribute name="level" use="optional">
+                  <xs:simpleType>
+                    <xs:restriction base="xs:string">
+                      <xs:enumeration value="National"/>
+                      <xs:enumeration value="Local"/>
+                    </xs:restriction>
+                  </xs:simpleType>
+                </xs:attribute>
+              </xs:extension>
+            </xs:simpleContent>
+          </xs:complexType>
+        </xs:element>
+
+        <!-- 11. officialSource
+              DESIGN INTENT: Provenance is critical because Korean youth
+              policy details change frequently. xs:anyURI is used instead
+              of xs:string to explicitly declare that this field holds a
+              URI and to benefit from URI syntax validation.
+              MODIFICATION FROM DRAFT 3: changed from xs:string to
+              xs:anyURI for clearer type intent and better interoperability.
+              Repeatable (1..unbounded) because a policy may be listed
+              on multiple portals. -->
+        <xs:element name="officialSource" type="xs:anyURI" minOccurs="1" maxOccurs="unbounded">
+          <xs:annotation>
+            <xs:documentation>
+              The official webpage, document, or data portal where the
+              policy information can be verified. Type xs:anyURI enforces
+              URI format. Repeatable for policies listed on multiple sites.
+              Example: https://www.example.go.kr/youth-rent-support
+            </xs:documentation>
+          </xs:annotation>
+        </xs:element>
+
+        <!-- 12. lastVerifiedDate
+              DESIGN INTENT: Information currency is a core concern for
+              policy metadata — benefits expire, conditions change, and
+              users need to know how recent the record is.
+              xs:date enforces ISO 8601 (YYYY-MM-DD), preventing
+              ambiguous date formats. Mandatory and non-repeatable. -->
+        <xs:element name="lastVerifiedDate" type="xs:date" minOccurs="1" maxOccurs="1">
+          <xs:annotation>
+            <xs:documentation>
+              The date on which the policy record was last checked or
+              updated for accuracy and currency. Format: YYYY-MM-DD.
+              Mandatory to support currency assessment.
+              Example: 2026-04-02
+            </xs:documentation>
+          </xs:annotation>
+        </xs:element>
+
+
+        <!-- ── OPTIONAL ELEMENTS ──────────────────────────────────── -->
+
+        <!-- 13. incomeCondition
+              DESIGN INTENT: Income-based eligibility is common in
+              Korean youth benefits but not universal. Optional (0..1)
+              and non-repeatable because a policy has at most one income
+              condition. xs:string is used because income thresholds are
+              expressed in varied ways ("below 150% of median income",
+              "income percentile below 60%") that resist enumeration. -->
+        <xs:element name="incomeCondition" type="xs:string" minOccurs="0" maxOccurs="1">
+          <xs:annotation>
+            <xs:documentation>
+              The income-based eligibility requirement, if applicable.
+              Optional — not all policies use income screening.
+              Free text; normalized expressions recommended.
+              Example: "Household income below 150% of median income."
+            </xs:documentation>
+          </xs:annotation>
+        </xs:element>
+
+        <!-- 14. householdCondition
+              DESIGN INTENT: Household composition requirements are
+              especially common in housing benefit programs (e.g.,
+              "one-person household only"). Optional (0..1) and
+              non-repeatable. Uses HouseholdConditionType enumeration
+              to enable filtering by household type. -->
+        <xs:element name="householdCondition" type="HouseholdConditionType" minOccurs="0" maxOccurs="1">
+          <xs:annotation>
+            <xs:documentation>
+              The household composition or family-status requirement,
+              if applicable. Optional — some policies are individual-based.
+              Controlled vocabulary: see HouseholdConditionType.
+              Example: OnePersonHousehold
+            </xs:documentation>
+          </xs:annotation>
+        </xs:element>
+
+        <!-- 15. employmentOrStudentStatus
+              DESIGN INTENT: Some policies are restricted to specific
+              work or study statuses (e.g., job seekers only). Optional
+              (0..unbounded) and repeatable because multiple eligible
+              statuses are possible (e.g., both JobSeeker and Student).
+              "Unspecified" allows explicit declaration that this
+              criterion does not apply to the policy. -->
+        <xs:element name="employmentOrStudentStatus" type="EmploymentOrStudentStatusType" minOccurs="0" maxOccurs="unbounded">
+          <xs:annotation>
+            <xs:documentation>
+              The work or education status required for eligibility,
+              if applicable. Optional and repeatable for multiple
+              eligible statuses. Controlled vocabulary: see
+              EmploymentOrStudentStatusType. Use "Unspecified" when
+              the policy has no status requirement.
+              Example: JobSeeker; Student
+            </xs:documentation>
+          </xs:annotation>
+        </xs:element>
+
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+
+</xs:schema>

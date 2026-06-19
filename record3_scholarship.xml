@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!--
+  record3_scholarship.xml
+  Instance record 3: National Scholarship Program for College Students
+  New record (not in Draft 3). Covers one of the 10 exemplar objects
+  defined in Draft 2: "National scholarship program for college students."
+  Added to demonstrate: (a) Scholarship supportType, (b) CollegeStudents
+  targetGroup, (c) annual-cycle applicationPeriod, (d) income condition.
+-->
+
+<policyRecord
+  xmlns="http://example.org/yps/"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://example.org/yps/ yps_schema.xsd">
+
+  <policyTitle>National Need-Based Scholarship for College Students</policyTitle>
+  <policySummary>A government scholarship providing tuition support to enrolled college students who demonstrate financial need, administered through the Korea Student Aid Foundation.</policySummary>
+
+  <supportType>Scholarship</supportType>
+
+  <targetGroup>CollegeStudents</targetGroup>
+  <targetGroup>LowIncomeYouth</targetGroup>
+
+  <ageRequirement>18-34</ageRequirement>
+
+  <!-- National program — all eligible students regardless of region -->
+  <geographicEligibility>National</geographicEligibility>
+  <eligibleRegionName>전국</eligibleRegionName>
+
+  <supportDetail>Tuition waiver up to KRW 3,500,000 per semester for eligible enrolled students. Renewable each semester upon maintaining enrollment and GPA requirements.</supportDetail>
+
+  <!-- applicationPeriod: annual cycle with a fixed semester intake window -->
+  <applicationPeriod>
+    <startDate>2026-02-01</startDate>
+    <endDate>2026-02-28</endDate>
+    <applicationCycle>AnnualCycle</applicationCycle>
+  </applicationPeriod>
+
+  <applicationMethod>Online</applicationMethod>
+
+  <administeringAgency level="National">Korea Student Aid Foundation (KOSAF)</administeringAgency>
+  <administeringAgency level="National">Ministry of Education</administeringAgency>
+
+  <officialSource>https://www.kosaf.go.kr/scholarship/need-based</officialSource>
+
+  <lastVerifiedDate>2026-04-10</lastVerifiedDate>
+
+  <!-- Optional: income threshold is a core eligibility criterion here -->
+  <incomeCondition>Household income percentile below 8th decile (income quantile 1-8).</incomeCondition>
+  <employmentOrStudentStatus>Student</employmentOrStudentStatus>
+
+</policyRecord>

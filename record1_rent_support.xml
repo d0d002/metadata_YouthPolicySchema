@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!--
+  record1_rent_support.xml
+  Instance record 1: Youth Monthly Rent Support Program
+  Based on Draft 3 Example Record 1, updated to conform to yps_schema.xsd (Draft 4).
+
+  CHANGES FROM DRAFT 3 EXAMPLE:
+  - geographicEligibility: "National" → kept as "National" (matches new enum)
+  - applicationPeriod: "Rolling" → wrapped in <applicationCycle>Rolling</applicationCycle>
+    sub-element under <applicationPeriod> (new structure from Draft 4)
+  - administeringAgency: added level attribute ("National" / "Local") per 2026-06-10 update
+  - All values checked against xs:enumeration definitions
+-->
+
+<policyRecord
+  xmlns="http://example.org/yps/"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://example.org/yps/ yps_schema.xsd">
+
+  <!-- Core identity elements -->
+  <policyTitle>Youth Monthly Rent Support Program</policyTitle>
+  <policySummary>A housing support program for young adults living independently and paying monthly rent. Provides a monthly cash subsidy to reduce housing cost burden.</policySummary>
+
+  <!-- Repeatable: this policy covers two support categories -->
+  <supportType>Housing</supportType>
+  <supportType>CashAllowance</supportType>
+
+  <!-- Repeatable: open to general youth and one-person households -->
+  <targetGroup>GeneralYouth</targetGroup>
+  <targetGroup>OnePersonHouseholds</targetGroup>
+
+  <ageRequirement>19-34</ageRequirement>
+
+  <!-- National program — open to eligible youth regardless of region -->
+  <geographicEligibility>National</geographicEligibility>
+  <eligibleRegionName>전국</eligibleRegionName>
+
+  <supportDetail>Monthly rent subsidy up to KRW 200,000 for up to 12 months.</supportDetail>
+
+  <!-- applicationPeriod: rolling program, no fixed start/end dates -->
+  <applicationPeriod>
+    <applicationCycle>Rolling</applicationCycle>
+  </applicationPeriod>
+
+  <applicationMethod>Online</applicationMethod>
+
+  <!-- Repeatable: administered jointly by a national ministry and local governments.
+       level attribute distinguishes governance tier. -->
+  <administeringAgency level="National">Ministry of Land, Infrastructure and Transport</administeringAgency>
+  <administeringAgency level="Local">Local Government Housing Departments</administeringAgency>
+
+  <officialSource>https://www.example.go.kr/youth-rent-support</officialSource>
+
+  <lastVerifiedDate>2026-04-02</lastVerifiedDate>
+
+  <!-- Optional elements -->
+  <incomeCondition>Household income below 150% of median income.</incomeCondition>
+  <householdCondition>OnePersonHousehold</householdCondition>
+  <employmentOrStudentStatus>Unspecified</employmentOrStudentStatus>
+
+</policyRecord>

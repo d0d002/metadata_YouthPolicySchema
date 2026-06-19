@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Youth Policy Schema (YPS) — Metadata Schema for Youth Policy Benefits</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="site-header">
+  <div class="header-inner">
+    <h1>Youth Policy Schema <span class="prefix">(yps:)</span></h1>
+    <p class="subtitle">A descriptive metadata schema for structuring youth policy benefit information</p>
+    <p class="author">DoAh Kim (김도아) · 2021310281 · Principles of Metadata, Final Project</p>
+  </div>
+  <nav class="site-nav">
+    <a href="#narrative">a. Opening Narrative</a>
+    <a href="#standards">b. Metadata Standards</a>
+    <a href="#vocabulary">c. Vocabulary Specification</a>
+    <a href="#xsd">d. XSD File</a>
+    <a href="#records">e. Sample XML Records</a>
+  </nav>
+</header>
+
+<main>
+
+<!-- ============================================================= -->
+<!-- a) OPENING NARRATIVE -->
+<!-- ============================================================= -->
+<section id="narrative">
+  <h2>a. Opening Narrative</h2>
+
+  <h3>History of Metadata in This Domain</h3>
+  <p>
+    Youth policy benefits in Korea — housing subsidies, scholarships, job-training grants,
+    mental health support, and similar programs — are published by a wide range of national
+    ministries, local governments, and public agencies. There is no shared metadata standard
+    across these publishers: the same kind of information (eligibility age, application period,
+    administering agency) appears in inconsistent formats, ranging from PDF flyers to plain web
+    pages to structured portal listings. As a result, the information that exists is rarely
+    re-usable across systems, and young people seeking benefits must manually cross-reference
+    many different sources to figure out what actually applies to them.
+  </p>
+  <p>
+    This schema, the Youth Policy Schema (<code>yps:</code>), was designed to give that scattered
+    information a consistent descriptive structure — the same role that schemas like Dublin Core
+    or MODS play for documents and library objects, applied instead to a domain (government policy
+    benefit announcements) that has not had a comparable metadata tradition.
+  </p>
+
+  <h3>Intended Users</h3>
+  <p>
+    The schema has two intended audiences. The primary audience is <strong>young adults
+    (roughly ages 19–34)</strong> trying to find benefits relevant to their own situation —
+    residence, income, employment or student status, and household type. The secondary audience
+    is anyone building a <strong>youth policy exploration service</strong> on top of this metadata:
+    a developer or administrator who needs consistently structured records to power search,
+    filtering, and a content-management workflow. As discussed in a project consultation with the
+    course instructor, the schema is intentionally scoped to describing <em>individual policy
+    records</em>, not the full service. A real service would also need separate data structures for
+    user accounts, recommendation logic, and administrator review — those are out of scope for this
+    schema, which focuses on making each policy benefit findable, comparable, and verifiable.
+  </p>
+
+  <h3>Development Notes</h3>
+  <p>The schema went through four drafts before reaching its current form:</p>
+  <ul>
+    <li><strong>Draft 1</strong> identified the domain and a working list of descriptive elements
+      (policy name, target group, age, residence, income/household conditions, support content,
+      application period and method, administering agency, verification date).</li>
+    <li><strong>Draft 2</strong> surveyed existing standards and vocabularies that could inform the
+      design (see Section b), and defined ten exemplar policy types the schema needed to cover.</li>
+    <li><strong>Draft 3</strong> formalized the element list into an overview table, a full data
+      dictionary, and controlled-vocabulary appendices — still as a paper design, not yet
+      machine-validated.</li>
+    <li><strong>Draft 4</strong> translated Draft 3 into a working XSD. Comparing schemas with
+      classmates in class led to five concrete changes: (1) adding the missing root element
+      <code>policyRecord</code>; (2) splitting <code>applicationPeriod</code> from one free-text
+      field into typed <code>startDate</code> / <code>endDate</code> / <code>applicationCycle</code>
+      sub-elements; (3) restricting <code>geographicEligibility</code> from an open string to a
+      controlled <code>National</code> / <code>RegionSpecific</code> vocabulary; (4) changing
+      <code>officialSource</code> from <code>xs:string</code> to <code>xs:anyURI</code>; and
+      (5) normalizing the <code>applicationMethod</code> value <code>"Offline (InPerson)"</code> to
+      <code>OfflineInPerson</code> for consistent camelCase style.</li>
+    <li><strong>Post-revision (instructor feedback, 06/11)</strong> — a further design question
+      surfaced once the schema was tested against realistic data: collapsing
+      <code>geographicEligibility</code> to just <code>National</code>/<code>RegionSpecific</code>
+      meant the schema could filter by scope but could not record which actual region (e.g. 서울특별시,
+      부산광역시) a region-specific policy applied to. Per the instructor's guidance, region names in
+      Korean government documents are not standardized enough to enumerate, so a sibling free-text
+      element, <code>eligibleRegionName</code>, was added to hold the literal region name while
+      <code>geographicEligibility</code> remains the controlled filtering value. The same
+      consultation also confirmed adding an optional <code>level</code> attribute
+      (<code>National</code>/<code>Local</code>) to <code>administeringAgency</code>, modeled with
+      <code>xs:complexType</code>/<code>xs:simpleContent</code> so the element keeps free-text
+      content while gaining a structured qualifier.</li>
+  </ul>
+
+  <h3>Theoretical Considerations</h3>
+  <p>
+    Two design principles run through the schema. First, a consistent split between
+    <strong>controlled-vocabulary fields</strong> used for filtering (<code>supportType</code>,
+    <code>targetGroup</code>, <code>geographicEligibility</code>, <code>applicationMethod</code>,
+    <code>householdCondition</code>, <code>employmentOrStudentStatus</code>) and
+    <strong>free-text fields</strong> used where real-world data is not yet standardized enough to
+    enumerate (<code>eligibleRegionName</code>, <code>supportDetail</code>,
+    <code>incomeCondition</code>, agency names). This mirrors a recurring lesson from the project:
+    forcing inconsistent real-world text into an enumeration too early makes a schema brittle,
+    while leaving everything as free text makes it unsearchable — the schema tries to draw that
+    line element-by-element rather than globally.
+  </p>
+  <p>
+    Second, a distinction between <strong>core</strong> and <strong>optional</strong> elements,
+    reflecting that not all eligibility criteria apply to every policy (e.g. income conditions
+    matter for need-based scholarships but not for a universal counseling program). Provenance and
+    currency are treated as first-class concerns — <code>officialSource</code> and
+    <code>lastVerifiedDate</code> are mandatory — because youth policy details change often enough
+    that an unverified record is of limited use. This structural separation of identity,
+    eligibility, benefit content, application logistics, and administrative/provenance information
+    was directly influenced by how museum and library schemas (CDWA Lite, MODS) divide description
+    from administrative metadata, even though this schema's subject matter (policy programs rather
+    than physical or bibliographic objects) is very different.
+  </p>
+</section>
+
+<!-- ============================================================= -->
+<!-- b) RELEVANT METADATA STANDARDS -->
+<!-- ============================================================= -->
+<section id="standards">
+  <h2>b. Relevant Metadata Standards</h2>
+  <p>
+    Draft 2 surveyed existing schemas and vocabularies relevant to describing youth policy
+    benefits. These standards were not imported directly into the final XSD — most are RDF/OWL
+    vocabularies not designed for direct XSD import — but they shaped the schema's structure and
+    remain useful as conceptual models, which is why the final schema defines its own
+    <code>yps:</code> namespace (<code>http://example.org/yps/</code>) rather than reusing external
+    element names.
+  </p>
+  <table>
+    <thead>
+      <tr><th>Schema / Vocabulary</th><th>Prefix</th><th>Namespace</th><th>Why it was considered</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Dublin Core Terms</td><td>dcterms</td><td>http://purl.org/dc/terms/</td>
+        <td>Provides a baseline for general descriptive elements such as title, description,
+          source, and date — the core identity information every policy record needs.</td>
+      </tr>
+      <tr>
+        <td>SKOS (Simple Knowledge Organization System)</td><td>skos</td>
+        <td>http://www.w3.org/2004/02/skos/core#</td>
+        <td>Informed how to structure controlled vocabularies such as support type, employment
+          status, household type, and regional classification as constrained, reusable value
+          sets.</td>
+      </tr>
+      <tr>
+        <td>Schema.org</td><td>schema</td><td>https://schema.org/</td>
+        <td>Offers flexible patterns for describing public-facing information like services,
+          organizations, audiences, and web resources — relevant since policy benefits are
+          essentially public services.</td>
+      </tr>
+      <tr>
+        <td>W3C Organization Ontology</td><td>org</td><td>http://www.w3.org/ns/org#</td>
+        <td>Each policy is tied to a government agency, local government, or institution, so this
+          ontology's modeling of organizational structure was a useful reference for the
+          <code>administeringAgency</code> element.</td>
+      </tr>
+      <tr>
+        <td>PROV-O (Provenance Ontology)</td><td>prov</td><td>http://www.w3.org/ns/prov#</td>
+        <td>Policy information changes frequently, so tracking where information came from and
+          when it was last checked is essential — the basis for <code>officialSource</code> and
+          <code>lastVerifiedDate</code>.</td>
+      </tr>
+      <tr>
+        <td>DCAT (Data Catalog Vocabulary)</td><td>dcat</td><td>http://www.w3.org/ns/dcat#</td>
+        <td>Policy information is often published through public data portals, so DCAT's model for
+          connecting records to datasets and sources informed how records reference their official
+          source.</td>
+      </tr>
+    </tbody>
+  </table>
+  <p class="note">
+    Structural inspiration was also drawn from museum/library description standards (e.g. CDWA
+    Lite, MODS), which clearly separate identity, classification, descriptive, source, and
+    administrative information — a division reflected in how this schema separates eligibility
+    criteria from application logistics and provenance fields.
+  </p>
+</section>
+
+<!-- ============================================================= -->
+<!-- c) VOCABULARY SPECIFICATION -->
+<!-- ============================================================= -->
+<section id="vocabulary">
+  <h2>c. Vocabulary Specification</h2>
+
+  <h3>Element Overview Table</h3>
+  <table>
+    <thead><tr><th>Element name</th><th>Status</th><th>Brief definition</th></tr></thead>
+    <tbody>
+      <tr><td>yps:policyTitle</td><td>Core</td><td>The official or commonly used name of the policy benefit.</td></tr>
+      <tr><td>yps:policySummary</td><td>Core</td><td>A short description of the policy and what it provides.</td></tr>
+      <tr><td>yps:supportType</td><td>Core</td><td>The general category of support offered by the policy.</td></tr>
+      <tr><td>yps:targetGroup</td><td>Core</td><td>The main intended beneficiaries of the policy.</td></tr>
+      <tr><td>yps:ageRequirement</td><td>Core</td><td>The age-based eligibility condition for the policy.</td></tr>
+      <tr><td>yps:geographicEligibility</td><td>Core</td><td>The residence- or location-based eligibility condition (controlled value: National / RegionSpecific).</td></tr>
+      <tr><td>yps:eligibleRegionName</td><td>Optional</td><td>The actual region name as written in the source document (e.g. 서울특별시). Added after instructor feedback to pair with geographicEligibility.</td></tr>
+      <tr><td>yps:supportDetail</td><td>Core</td><td>The specific form, amount, duration, or service content of the benefit.</td></tr>
+      <tr><td>yps:applicationPeriod</td><td>Core</td><td>The application window or timing information, structured as startDate / endDate / applicationCycle.</td></tr>
+      <tr><td>yps:applicationMethod</td><td>Core</td><td>The way a user can apply for the policy benefit.</td></tr>
+      <tr><td>yps:administeringAgency</td><td>Core</td><td>The organization responsible for managing or delivering the policy, with an optional level attribute (National/Local).</td></tr>
+      <tr><td>yps:officialSource</td><td>Core</td><td>The official source URL where the policy information is published.</td></tr>
+      <tr><td>yps:lastVerifiedDate</td><td>Core</td><td>The date on which the policy information was last checked or updated.</td></tr>
+      <tr><td>yps:incomeCondition</td><td>Optional</td><td>The income-based eligibility condition, if relevant.</td></tr>
+      <tr><td>yps:householdCondition</td><td>Optional</td><td>The household or family-related eligibility condition, if relevant.</td></tr>
+      <tr><td>yps:employmentOrStudentStatus</td><td>Optional</td><td>The applicant's employment or student status, if relevant to eligibility.</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Controlled Vocabulary Appendices</h3>
+
+  <table>
+    <thead><tr><th>Appendix</th><th>Element</th><th>Allowed values</th></tr></thead>
+    <tbody>
+      <tr><td>A1</td><td>yps:supportType</td><td>Housing, CashAllowance, Scholarship, Employment, Training, Entrepreneurship, SavingsAssetBuilding, Transportation, HealthCounseling, CultureLeisure, LoanInterestSupport, Mixed</td></tr>
+      <tr><td>A2</td><td>yps:targetGroup</td><td>GeneralYouth, CollegeStudents, JobSeekers, YoungWorkers, YoungEntrepreneurs, OnePersonHouseholds, LowIncomeYouth, RegionalResidents, NewlyEmployedYouth</td></tr>
+      <tr><td>A3</td><td>yps:applicationMethod</td><td>Online, OfflineInPerson, Mail, Mixed</td></tr>
+      <tr><td>A4</td><td>yps:employmentOrStudentStatus</td><td>Student, JobSeeker, Employed, SelfEmployed, Entrepreneur, Unspecified</td></tr>
+      <tr><td>A5</td><td>yps:householdCondition</td><td>OnePersonHousehold, MultiPersonHousehold, DependentHousehold, LowIncomeHousehold, Unspecified</td></tr>
+      <tr><td>A6 <span class="tag">(Draft 4)</span></td><td>yps:geographicEligibility</td><td>National, RegionSpecific</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Full Data Dictionary</h3>
+
+  <div class="dict-entry">
+    <h4>1. yps:policyTitle</h4>
+    <table class="dict-table">
+      <tr><th>Label</th><td>Policy Title</td></tr>
+      <tr><th>URI</th><td>http://example.org/yps/policyTitle</td></tr>
+      <tr><th>Full definition</th><td>The official or commonly used name that identifies a youth policy benefit record; the primary human-readable title of the policy.</td></tr>
+      <tr><th>Data values</th><td>String</td></tr>
+      <tr><th>Controlled vocabulary</th><td>None</td></tr>
+      <tr><th>Cardinality</th><td>Mandatory: Yes / Repeatable: No</td></tr>
+      <tr><th>Example</th><td>"Youth Monthly Rent Support Program"</td></tr>
+    </table>
+  </div>
+
+  <div class="dict-entry">
+    <h4>2. yps:policySummary</h4>
+    <table class="dict-table">
+      <tr><th>Label</th><td>Policy Summary</td></tr>
+      <tr><th>URI</th><td>http://example.org/yps/policySummary</td></tr>
+      <tr><th>Full definition</th><td>A concise narrative summary explaining the policy's purpose and the kind of benefit or service it provides.</td></tr>
+      <tr><th>Data values</th><td>String</td></tr>
+      <tr><th>Controlled vocabulary</th><td>None</td></tr>
+      <tr><th>Cardinality</th><td>Mandatory: Yes / Repeatable: No</td></tr>
+      <tr><th>Example</th><td>"A housing support program for young adults who live independently and pay monthly rent."</td></tr>
+    </table>
+  </div>
+
+  <div class="dict-entry">
+    <h4>3. yps:supportType</h4>
+    <table class="dict-table">
+      <tr><th>Label</th><td>Support Type</td></tr>
+      <tr><th>URI</th><td>http://example.org/yps/supportType</td></tr>
+      <tr><th>Full definition</th><td>The broad category or categories of support provided by the policy benefit, used to compare policies by benefit type.</td></tr>
+      <tr><th>Data values</th><td>Controlled term</td></tr>
+      <tr><th>Controlled vocabulary</th><td>See Appendix A1</td></tr>
+      <tr><th>Cardinality</th><td>Mandatory: Yes / Repeatable: Yes</td></tr>
+      <tr><th>Example</th><td>Housing; CashAllowance</td></tr>
+    </table>
+  </div>
+
+  <div class="dict-entry">
+    <h4>4. yps:targetGroup</h4>
+    <table class="dict-table">
+      <tr><th>Label</th><td>Target Group</td></tr>
+      <tr><th>URI</th><td>http://example.org/yps/targetGroup</td></tr>
+      <tr><th>Full definition</th><td>The intended beneficiary group or user category that the policy is designed to support.</td></tr>
+      <tr><th>Data values</th><td>Controlled term</td></tr>
+      <tr><th>Controlled vocabulary</th><td>See Appendix A2</td></tr>
+      <tr><th>Cardinality</th><td>Mandatory: Yes / Repeatable: Yes</td></tr>
+      <tr><th>Example</th><td>JobSeekers; CollegeStudents</td></tr>
+    </table>
+  </div>
+
+  <div class="dict-entry">
+    <h4>5. yps:ageRequirement</h4>
+    <table class="dict-table">
+      <tr><th>Label</th><td>Age Requirement</td></tr>
+      <tr><th>URI</th><td>http://example.org/yps/ageRequirement</td></tr>
+      <tr><th>Full definition</th><td>The age-based eligibility rule that determines whether an applicant's age falls within the required range.</td></tr>
+      <tr><th>Data values</th><td>String (numeric range or "NoAgeLimit")</td></tr>
+      <tr><th>Controlled vocabulary</th><td>Recommended format: "NN-NN" or "NoAgeLimit"</td></tr>
+      <tr><th>Cardinality</th><td>Mandatory: Yes / Repeatable: No</td></tr>
+      <tr><th>Example</th><td>"19-34"</td></tr>
+    </table>
+  </div>
+
+  <div class="dict-entry">
+    <h4>6. yps:geographicEligibility</h4>
+    <table class="dict-table">
+      <tr><th>Label</th><td>Geographic Eligibility</td></tr>
+      <tr><th>URI</th><td>http://example.org/yps/geographicEligibility</td></tr>
+      <tr><th>Full definition</th><td>The residence/location-based eligibility condition. Restricted in Draft 4 to a controlled vocabulary to prevent inconsistent free-text entries; pairs with eligibleRegionName for the literal region name.</td></tr>
+      <tr><th>Data values</th><td>Controlled term</td></tr>
+      <tr><th>Controlled vocabulary</th><td>National, RegionSpecific</td></tr>
+      <tr><th>Cardinality</th><td>Mandatory: Yes / Repeatable: Yes</td></tr>
+      <tr><th>Example</th><td>National</td></tr>
+    </table>
+  </div>
+
+  <div class="dict-entry">
+    <h4>6b. yps:eligibleRegionName <span class="tag">(added post-Draft 4, instructor feedback)</span></h4>
+    <table class="dict-table">
+      <tr><th>Label</th><td>Eligible Region Name</td></tr>
+      <tr><th>URI</th><td>http://example.org/yps/eligibleRegionName</td></tr>
+      <tr><th>Full definition</th><td>The actual region name as written in the source policy document (e.g. 서울특별시, 부산광역시, 전국). Kept as free text because region naming is not standardized across agencies.</td></tr>
+      <tr><th>Data values</th><td>String</td></tr>
+      <tr><th>Controlled vocabulary</th><td>None (intentional — see Opening Narrative)</td></tr>
+      <tr><th>Cardinality</th><td>Mandatory: No / Repeatable: Yes</td></tr>
+      <tr><th>Example</th><td>서울특별시 / 전국 / 경기도</td></tr>
+    </table>
+  </div>
+
+  <div class="dict-entry">
+    <h4>7. yps:supportDetail</h4>
+    <table class="dict-table">
+      <tr><th>Label</th><td>Support Detail</td></tr>
+      <tr><th>URI</th><td>http://example.org/yps/supportDetail</td></tr>
+      <tr><th>Full definition</th><td>The specific form, amount, duration, or service content of the benefit.</td></tr>
+      <tr><th>Data values</th><td>String</td></tr>
+      <tr><th>Controlled vocabulary</th><td>None</td></tr>
+      <tr><th>Cardinality</th><td>Mandatory: Yes / Repeatable: No</td></tr>
+      <tr><th>Example</th><td>"Monthly rent subsidy up to KRW 200,000 for up to 12 months."</td></tr>
+    </table>
+  </div>
+
+  <div class="dict-entry">
+    <h4>8. yps:applicationPeriod</h4>
+    <table class="dict-table">
+      <tr><th>Label</th><td>Application Period</td></tr>
+      <tr><th>URI</th><td>http://example.org/yps/applicationPeriod</td></tr>
+      <tr><th>Full definition</th><td>The time range or cycle during which users may apply. Structured (Draft 4) into three optional sub-elements so each piece of timing information is independently typed.</td></tr>
+      <tr><th>Data values</th><td>Complex type: startDate (xs:date), endDate (xs:date), applicationCycle (xs:string)</td></tr>
+      <tr><th>Controlled vocabulary</th><td>applicationCycle commonly: Rolling, AnnualCycle, Quarterly</td></tr>
+      <tr><th>Cardinality</th><td>Parent mandatory: Yes / Repeatable: No; each sub-element optional</td></tr>
+      <tr><th>Example</th><td>startDate=2026-03-01, endDate=2026-11-30 — or — applicationCycle=Rolling</td></tr>
+    </table>
+  </div>
+
+  <div class="dict-entry">
+    <h4>9. yps:applicationMethod</h4>
+    <table class="dict-table">
+      <tr><th>Label</th><td>Application Method</td></tr>
+      <tr><th>URI</th><td>http://example.org/yps/applicationMethod</td></tr>
+      <tr><th>Full definition</th><td>The mode(s) by which an applicant can submit an application.</td></tr>
+      <tr><th>Data values</th><td>Controlled term</td></tr>
+      <tr><th>Controlled vocabulary</th><td>See Appendix A3</td></tr>
+      <tr><th>Cardinality</th><td>Mandatory: Yes / Repeatable: Yes</td></tr>
+      <tr><th>Example</th><td>Online; OfflineInPerson</td></tr>
+    </table>
+  </div>
+
+  <div class="dict-entry">
+    <h4>10. yps:administeringAgency</h4>
+    <table class="dict-table">
+      <tr><th>Label</th><td>Administering Agency</td></tr>
+      <tr><th>URI</th><td>http://example.org/yps/administeringAgency</td></tr>
+      <tr><th>Full definition</th><td>The government body, local authority, or institution responsible for managing or delivering the policy benefit. Modeled with xs:simpleContent so it carries both free-text content and an optional level attribute.</td></tr>
+      <tr><th>Data values</th><td>String content + optional "level" attribute</td></tr>
+      <tr><th>Controlled vocabulary</th><td>level attribute: National, Local</td></tr>
+      <tr><th>Cardinality</th><td>Mandatory: Yes / Repeatable: Yes</td></tr>
+      <tr><th>Example</th><td>&lt;administeringAgency level="Local"&gt;Seoul Metropolitan Government&lt;/administeringAgency&gt;</td></tr>
+    </table>
+  </div>
+
+  <div class="dict-entry">
+    <h4>11. yps:officialSource</h4>
+    <table class="dict-table">
+      <tr><th>Label</th><td>Official Source</td></tr>
+      <tr><th>URI</th><td>http://example.org/yps/officialSource</td></tr>
+      <tr><th>Full definition</th><td>The official webpage, document, or data portal where the policy information can be verified. Typed as xs:anyURI (Draft 4 change from xs:string) for explicit URI validation.</td></tr>
+      <tr><th>Data values</th><td>anyURI</td></tr>
+      <tr><th>Controlled vocabulary</th><td>None</td></tr>
+      <tr><th>Cardinality</th><td>Mandatory: Yes / Repeatable: Yes</td></tr>
+      <tr><th>Example</th><td>https://www.example.go.kr/youth-rent-support</td></tr>
+    </table>
+  </div>
+
+  <div class="dict-entry">
+    <h4>12. yps:lastVerifiedDate</h4>
+    <table class="dict-table">
+      <tr><th>Label</th><td>Last Verified Date</td></tr>
+      <tr><th>URI</th><td>http://example.org/yps/lastVerifiedDate</td></tr>
+      <tr><th>Full definition</th><td>The date the policy record was last checked or updated for accuracy and currency.</td></tr>
+      <tr><th>Data values</th><td>Date (ISO 8601, YYYY-MM-DD)</td></tr>
+      <tr><th>Controlled vocabulary</th><td>None</td></tr>
+      <tr><th>Cardinality</th><td>Mandatory: Yes / Repeatable: No</td></tr>
+      <tr><th>Example</th><td>2026-04-02</td></tr>
+    </table>
+  </div>
+
+  <div class="dict-entry">
+    <h4>13. yps:incomeCondition</h4>
+    <table class="dict-table">
+      <tr><th>Label</th><td>Income Condition</td></tr>
+      <tr><th>URI</th><td>http://example.org/yps/incomeCondition</td></tr>
+      <tr><th>Full definition</th><td>The income-based eligibility requirement, if applicable.</td></tr>
+      <tr><th>Data values</th><td>String</td></tr>
+      <tr><th>Controlled vocabulary</th><td>None (normalized expressions recommended)</td></tr>
+      <tr><th>Cardinality</th><td>Mandatory: No / Repeatable: No</td></tr>
+      <tr><th>Example</th><td>"Household income below 150% of median income."</td></tr>
+    </table>
+  </div>
+
+  <div class="dict-entry">
+    <h4>14. yps:householdCondition</h4>
+    <table class="dict-table">
+      <tr><th>Label</th><td>Household Condition</td></tr>
+      <tr><th>URI</th><td>http://example.org/yps/householdCondition</td></tr>
+      <tr><th>Full definition</th><td>The household composition or family-status requirement relevant to eligibility.</td></tr>
+      <tr><th>Data values</th><td>Controlled term</td></tr>
+      <tr><th>Controlled vocabulary</th><td>See Appendix A5</td></tr>
+      <tr><th>Cardinality</th><td>Mandatory: No / Repeatable: No</td></tr>
+      <tr><th>Example</th><td>OnePersonHousehold</td></tr>
+    </table>
+  </div>
+
+  <div class="dict-entry">
+    <h4>15. yps:employmentOrStudentStatus</h4>
+    <table class="dict-table">
+      <tr><th>Label</th><td>Employment or Student Status</td></tr>
+      <tr><th>URI</th><td>http://example.org/yps/employmentOrStudentStatus</td></tr>
+      <tr><th>Full definition</th><td>The work or education status required for eligibility, if applicable.</td></tr>
+      <tr><th>Data values</th><td>Controlled term</td></tr>
+      <tr><th>Controlled vocabulary</th><td>See Appendix A4</td></tr>
+      <tr><th>Cardinality</th><td>Mandatory: No / Repeatable: Yes</td></tr>
+      <tr><th>Example</th><td>JobSeeker; Student</td></tr>
+    </table>
+  </div>
+
+</section>
+
+<!-- ============================================================= -->
+<!-- d) XSD FILE -->
+<!-- ============================================================= -->
+<section id="xsd">
+  <h2>d. XSD File</h2>
+  <p>
+    The full schema is hosted alongside this page as <code>yps_schema.xsd</code>, with
+    <code>xs:documentation</code> annotations and design-intent comments for every element,
+    including notes on what changed between drafts and why (see inline comments for the Draft 4
+    revisions and the post-revision instructor-feedback changes described in Section a).
+  </p>
+  <p class="cta">
+    <a class="button" href="yps_schema.xsd">→ View / download yps_schema.xsd</a>
+  </p>
+  <p class="note">
+    Direct URL once published: <code>https://d0d002.github.io/metadata_YouthPolicySchema/yps_schema.xsd</code><br>
+    Sample XML records reference this file via a relative
+    <code>xsi:schemaLocation</code> path, so they validate as long as the XSD stays in the same
+    folder as the records.
+  </p>
+</section>
+
+<!-- ============================================================= -->
+<!-- e) SAMPLE XML RECORDS -->
+<!-- ============================================================= -->
+<section id="records">
+  <h2>e. Sample XML Records</h2>
+  <p>All three records below were validated against <code>yps_schema.xsd</code> using <code>xmllint --schema</code> with no errors.</p>
+  <ul class="record-list">
+    <li>
+      <a href="record1_rent_support.xml">record1_rent_support.xml</a>
+      — Youth Monthly Rent Support Program (National, rolling application)
+    </li>
+    <li>
+      <a href="record2_mental_health.xml">record2_mental_health.xml</a>
+      — Mental Health Counseling Support for Young Adults (Seoul-specific, fixed application window)
+    </li>
+    <li>
+      <a href="record3_scholarship.xml">record3_scholarship.xml</a>
+      — National Need-Based Scholarship for College Students (National, annual-cycle application)
+    </li>
+  </ul>
+</section>
+
+</main>
+
+<footer>
+  <p>Youth Policy Schema (yps:) — Final Project, Principles of Metadata — DoAh Kim, 2026</p>
+</footer>
+
+</body>
+</html>

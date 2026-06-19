@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!--
+  record2_mental_health.xml
+  Instance record 2: Mental Health Counseling Support for Young Adults
+  Based on Draft 3 Example Record 2, updated to conform to yps_schema.xsd (Draft 4).
+
+  CHANGES FROM DRAFT 3 EXAMPLE:
+  - geographicEligibility: "Seoul residents" → "RegionSpecific" (new enum value)
+  - applicationPeriod: "2026-03-01 to 2026-11-30" → split into
+    <startDate>2026-03-01</startDate> and <endDate>2026-11-30</endDate>
+  - applicationMethod: "Online; InPerson" → two separate <applicationMethod> elements;
+    "InPerson" normalized to "OfflineInPerson" per Draft 4 vocabulary change
+  - householdCondition: "Unspecified" added explicitly (was implicit in Draft 3)
+-->
+
+<policyRecord
+  xmlns="http://example.org/yps/"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://example.org/yps/ yps_schema.xsd">
+
+  <policyTitle>Mental Health Counseling Support for Young Adults</policyTitle>
+  <policySummary>A support program that provides subsidized counseling sessions for young adults experiencing emotional or psychological stress.</policySummary>
+
+  <supportType>HealthCounseling</supportType>
+
+  <targetGroup>GeneralYouth</targetGroup>
+
+  <ageRequirement>19-34</ageRequirement>
+
+  <!-- Region-specific: only Seoul residents are eligible -->
+  <geographicEligibility>RegionSpecific</geographicEligibility>
+  <eligibleRegionName>서울특별시</eligibleRegionName>
+
+  <supportDetail>Up to 8 subsidized counseling sessions at participating centers.</supportDetail>
+
+  <!-- applicationPeriod: fixed window with start and end dates -->
+  <applicationPeriod>
+    <startDate>2026-03-01</startDate>
+    <endDate>2026-11-30</endDate>
+  </applicationPeriod>
+
+  <!-- Repeatable: both online and in-person application accepted -->
+  <applicationMethod>Online</applicationMethod>
+  <applicationMethod>OfflineInPerson</applicationMethod>
+
+  <administeringAgency level="Local">Seoul Metropolitan Government</administeringAgency>
+
+  <officialSource>https://www.example.go.kr/youth-counseling</officialSource>
+
+  <lastVerifiedDate>2026-04-02</lastVerifiedDate>
+
+  <!-- Optional elements: income and household conditions not applicable -->
+  <householdCondition>Unspecified</householdCondition>
+  <employmentOrStudentStatus>Unspecified</employmentOrStudentStatus>
+
+</policyRecord>
